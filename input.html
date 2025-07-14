@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>إدخال البيانات</title>
+  <style>
+    body { direction: rtl; font-family: Arial; padding: 20px; background: #f0f0f0; }
+    label, input, textarea { display: block; margin: 10px 0; width: 100%; max-width: 400px; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; cursor: pointer; }
+    #scanner-container { margin-top: 15px; width: 100%; max-width: 400px; }
+    .nav-button { background-color: #4CAF50; color: white; border: none; }
+    .nav-button:hover { background-color: #45a049; }
+  </style>
+</head>
+<body>
+  <h2>تسجيل البيانات</h2>
+
+  <label>الرقم (يدوي أو بالكاميرا):</label>
+  <input type="text" id="numberInput" placeholder="أدخل الرقم أو امسح الباركود" required>
+
+  <button onclick="startScanner()">📷 تشغيل الكاميرا لمسح الباركود</button>
+  <div id="scanner-container"></div>
+
+  <label>ملاحظة:</label>
+  <textarea id="noteInput" placeholder="ملاحظات إضافية (اختياري)"></textarea>
+
+  <button onclick="addEntry()">➕ إضافة</button>
+
+  <hr>
+  <button class="nav-button" onclick="goToView()">📊 عرض البيانات</button>
+
+  <!-- مكتبة QuaggaJS -->
+  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
+
+  <script>
+    function addEntry() {
+      const number = document.getElementById('numberInput').value.trim();
+      const note = document.getElementById('noteInput').value.trim();
+      const now = new Date();
+      const date = now.toLocaleDateString('ar-MA');
+      const time = now.toLocaleTimeString('ar-MA');
+
+      if (!number) {
+        alert("يرجى إدخال الرقم أو مسحه بالكاميرا");
+        return;
+      }
+
+      const entry = { number, note, date, time };
+      let entries = JSON.parse(localStorage.getItem('entries') || '[]');
+      entries.push(entry);
+      localStorage.setItem('entries', JSON.stringify(entries));
+
+      alert("✅ تم حفظ البيانات بنجاح");
+      document.getElementById('numberInput').value = '';
+      document.getElementById('noteInput').value = '';
+    }
+
+    function startScanner() {
+      const container = document.getElementById('scanner-container');
+      container.innerHTML = ''; // إعادة التهيئة
+
+      Quagga.init({
+        inputStream: {
+          type: "LiveStream",
+          target: container,
+          constraints: {
+            facingMode: "environment"
+          }
+        },
+        decoder: {
+          readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader"]
+        }
+      }, function (err) {
+        if (err) {
+          console.error(err);
+          alert("حدث خطأ في تشغيل الكاميرا");
+          return;
+        }
+        Quagga.start();
+      });
+
+      Quagga.onDetected(result => {
+        if (result.codeResult && result.codeResult.code) {
+          document.getElementById('numberInput').value = result.codeResult.code;
+          Quagga.stop();
+          container.innerHTML = ''; // إزالة الكاميرا
+        }
+      });
+    }
+
+    function goToView() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

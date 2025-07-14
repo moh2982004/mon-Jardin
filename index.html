@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>عرض الإنتاج</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      direction: rtl;
+      font-family: Arial;
+      background: #f0f0f0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header-info {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .total-counter {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 20px 0;
+      color: #004d40;
+    }
+
+    table {
+      width: 100%;
+      max-width: 900px;
+      margin: auto;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+    }
+
+    th {
+      background: #009688;
+      color: white;
+    }
+
+    .nav-button {
+      margin: 20px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h2>📊 عرض بيانات الإنتاج</h2>
+
+<div class="header-info" id="dateTimeInfo"></div>
+<div class="header-info" id="teamInfo"></div>
+
+<div class="total-counter">
+  إجمالي الإنتاج: <span id="totalCount">0</span> منتج
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>الساعة</th>
+      <th>الرقم</th>
+      <th>الملاحظة</th>
+    </tr>
+  </thead>
+  <tbody id="dataTable"></tbody>
+</table>
+
+<button class="nav-button" onclick="goToInput()">🔁 العودة إلى الإدخال</button>
+<button class="nav-button" onclick="exportToExcel()">📥 تحميل كـ Excel</button>
+<button class="nav-button" onclick="clearData()">🗑️ مسح البيانات</button>
+
+<!-- مكتبة Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+  const table = document.getElementById('dataTable');
+  const totalCount = document.getElementById('totalCount');
+  const dateTimeInfo = document.getElementById('dateTimeInfo');
+  const teamInfo = document.getElementById('teamInfo');
+
+  function getCurrentShiftAndTeam() {
+  const now = new Date();
+  const hour = now.getHours();
+  const week = getWeekNumber(now); // تحديد رقم الأسبوع
+  const isEvenWeek = week % 2 === 0;
+
+  let shift = "";
+  let team = "";
+  let worker = "";
+
+  if (hour >= 7 && hour < 15) {
+    shift = "الوردية الصباحية";
+    if (isEvenWeek) {
+      team = "الفريق B";
+      worker = "هند";
+
+    } else {
+	team = "الفريق A";
+      worker = "رضوان";
+      
+    }
+  } else if (hour >= 15 && hour < 23) {
+    shift = "الوردية المسائية";
+    if (isEvenWeek) {
+team = "الفريق A";
+      worker = "رضوان";
+      
+    } else {
+team = "الفريق B";
+      worker = "هند";
+      
+    }
+  } else {
+    shift = "الوردية الليلية";
+    team = "لا أحد";
+    worker = "لا يوجد";
+  }
+
+  return { team, shift, worker };
+}
+
+
+  function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  }
+
+  function updateHeaderInfo() {
+    const now = new Date();
+    const date = now.toLocaleDateString('ar-MA');
+    const time = now.toLocaleTimeString('ar-MA');
+    const week = getWeekNumber(now);
+
+    const { team, shift, worker } = getCurrentShiftAndTeam();
+
+    dateTimeInfo.innerHTML = `🧾 الأسبوع رقم: ${week}- 📅 التاريخ: ${date}  - 🕓 الوقت: ${time}`  ;
+    teamInfo.innerHTML = `👷 الفريق: ${team} - 🕒 الشفت: ${shift} - 🧑‍🔧 العامل: ${worker}`;
+  }
+
+  function loadData() {
+    const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+    let total = 0;
+
+    table.innerHTML = '';
+
+    for (const entry of entries) {
+      const row = document.createElement('tr');
+
+      const timeCell = document.createElement('td');
+      timeCell.textContent = entry.time;
+
+      const numberCell = document.createElement('td');
+      numberCell.textContent = entry.number;
+
+      const noteCell = document.createElement('td');
+      noteCell.textContent = entry.note;
+
+      row.appendChild(timeCell);
+      row.appendChild(numberCell);
+      row.appendChild(noteCell);
+      table.appendChild(row);
+
+      if (entry.number && entry.number.trim() !== '') {
+        total += 1;
+      }
+    }
+
+    totalCount.textContent = total;
+  }
+
+  function goToInput() {
+    window.location.href = "input.html";
+  }
+
+  function exportToExcel() {
+    const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+    if (entries.length === 0) {
+      alert("لا توجد بيانات للتصدير");
+      return;
+    }
+
+    const now = new Date();
+    const date = now.toLocaleDateString('ar-MA');
+    const time = now.toLocaleTimeString('ar-MA');
+    const week = getWeekNumber(now);
+    const { team, shift, worker } = getCurrentShiftAndTeam();
+
+    const headerInfo = [
+      ["📅 التاريخ", date],
+      ["🕓 الوقت", time],
+      ["📆 رقم الأسبوع", week],
+      ["👷 اسم الفريق", team],
+      ["🧑‍🔧 اسم العامل", worker],
+      ["🕒 الشفت", shift],
+      [],
+      ["الساعة", "الرقم", "الملاحظة"]
+    ];
+
+    const dataRows = entries.map(entry => [
+      entry.time,
+      entry.number,
+      entry.note
+    ]);
+
+    const fullData = [...headerInfo, ...dataRows];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(fullData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "الإنتاج");
+
+    XLSX.writeFile(workbook, `بيانات_الإنتاج_${date}.xlsx`);
+  }
+
+  window.onload = function () {
+    updateHeaderInfo();
+    loadData();
+  };
+function clearData() {
+  if (confirm("هل أنت متأكد أنك تريد مسح جميع البيانات؟ لا يمكن التراجع.")) {
+    localStorage.removeItem('entries');
+    alert("✅ تم مسح جميع البيانات.");
+    loadData(); // إعادة تحميل الجدول ليصبح فارغاً
+    totalCount.textContent = 0; // إعادة العداد للصفر
+  }
+}
+</script>
+
+</body>
+</html>
