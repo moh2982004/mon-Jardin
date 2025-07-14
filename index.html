@@ -66,13 +66,14 @@
 </div>
 
 <table>
-  <thead>
-    <tr>
-      <th>الساعة</th>
-      <th>الرقم</th>
-      <th>الملاحظة</th>
-    </tr>
-  </thead>
+ <thead>
+  <tr>
+    <th>الساعة</th>
+    <th>الرقم</th>
+    <th>الملاحظة</th>
+    <th>🔒 حذف</th> <!-- جديد -->
+  </tr>
+</thead>
   <tbody id="dataTable"></tbody>
 </table>
 
@@ -152,35 +153,44 @@ team = "الفريق B";
   }
 
   function loadData() {
-    const entries = JSON.parse(localStorage.getItem('entries') || '[]');
-    let total = 0;
+  const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+  let total = 0;
+  table.innerHTML = '';
 
-    table.innerHTML = '';
+  entries.forEach((entry, index) => {
+    const row = document.createElement('tr');
 
-    for (const entry of entries) {
-      const row = document.createElement('tr');
+    const timeCell = document.createElement('td');
+    timeCell.textContent = entry.time || '';
 
-      const timeCell = document.createElement('td');
-      timeCell.textContent = entry.time;
+    const numberCell = document.createElement('td');
+    numberCell.textContent = entry.number || '';
 
-      const numberCell = document.createElement('td');
-      numberCell.textContent = entry.number;
+    const noteCell = document.createElement('td');
+    noteCell.textContent = entry.note || '';
 
-      const noteCell = document.createElement('td');
-      noteCell.textContent = entry.note;
+    const deleteCell = document.createElement('td');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.style.cursor = "pointer";
+    deleteBtn.onclick = () => deleteRow(index);
+    deleteCell.appendChild(deleteBtn);
 
-      row.appendChild(timeCell);
-      row.appendChild(numberCell);
-      row.appendChild(noteCell);
-      table.appendChild(row);
+    row.appendChild(timeCell);
+    row.appendChild(numberCell);
+    row.appendChild(noteCell);
+    row.appendChild(deleteCell);
 
-      if (entry.number && entry.number.trim() !== '') {
-        total += 1;
-      }
+    table.appendChild(row);
+
+    if (entry.number && entry.number.trim() !== '') {
+      total += 1;
     }
+  });
 
-    totalCount.textContent = total;
-  }
+  totalCount.textContent = total;
+}
+
 
   function goToInput() {
     window.location.href = "input.html";
@@ -230,13 +240,31 @@ team = "الفريق B";
     loadData();
   };
 function clearData() {
-  if (confirm("هل أنت متأكد أنك تريد مسح جميع البيانات؟ لا يمكن التراجع.")) {
-    localStorage.removeItem('entries');
-    alert("✅ تم مسح جميع البيانات.");
-    loadData(); // إعادة تحميل الجدول ليصبح فارغاً
-    totalCount.textContent = 0; // إعادة العداد للصفر
+  const code = prompt("أدخل الرمز السري لمسح جميع البيانات:");
+  if (code === "1234") {
+    if (confirm("⚠️ هل أنت متأكد أنك تريد مسح جميع البيانات؟")) {
+      localStorage.removeItem('entries');
+      alert("✅ تم مسح جميع البيانات.");
+      loadData();
+      totalCount.textContent = 0;
+    }
+  } else {
+    alert("❌ رمز غير صحيح. لم يتم المسح.");
   }
 }
+
+function deleteRow(index) {
+  const code = prompt("أدخل الرمز السري لحذف هذا السطر:");
+  if (code === "1234") {
+    let entries = JSON.parse(localStorage.getItem('entries') || '[]');
+    entries.splice(index, 1); // حذف السطر
+    localStorage.setItem('entries', JSON.stringify(entries));
+    loadData(); // تحديث الجدول
+  } else {
+    alert("❌ رمز غير صحيح. لم يتم الحذف.");
+  }
+}
+
 </script>
 
 </body>
